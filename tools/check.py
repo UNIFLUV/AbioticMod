@@ -1,0 +1,16 @@
+"""Run Lua 5.4 probe tests without requiring the Windows game or UE4SS."""
+from pathlib import Path
+import os
+
+from lupa.lua54 import LuaRuntime
+
+root = Path(__file__).resolve().parents[1]
+os.chdir(root)
+lua = LuaRuntime(unpack_returned_tuples=True)
+lua.execute("package.path = 'mods/AbioticSplitScreen/Scripts/?.lua;' .. package.path")
+lua.execute((root / "tests" / "split_probe_spec.lua").read_text(encoding="utf-8"))
+lua.execute((root / "tests" / "session_tools_spec.lua").read_text(encoding="utf-8"))
+lua.execute((root / "tests" / "player_bindings_spec.lua").read_text(encoding="utf-8"))
+lua.execute((root / "tests" / "hud_link_spec.lua").read_text(encoding="utf-8"))
+lua.execute((root / "tests" / "inventory_ui_spec.lua").read_text(encoding="utf-8"))
+lua.execute((root / "tests" / "waypoint_ui_spec.lua").read_text(encoding="utf-8"))
