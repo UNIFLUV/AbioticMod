@@ -464,3 +464,4 @@ function session:switch_input()
     log('F2 handoff complete; automatic waypoint scan disabled.')
 end
 log('Experimental probe v0.7.4a loaded. Automatic waypoint experiment disabled after a reported crash/hang during its scan. Inventory ownership, focus and owned safe-close trial retained. Marker projection, shared pause, animation and profiles remain pending.')
+log('Experimental probe v0.7.5 loaded. Guest Tab/Esc close fallback uses its own Pawn.ToggleInventory with ForceClose=true; settled visibility is logged. Waypoint scan remains disabled. Native closure still needs game validation.')

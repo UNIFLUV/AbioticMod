@@ -31,13 +31,14 @@ local function visible(w)
     end
     return false
 end
-local function property(o, key)
+local function property(o, key, kind)
+    kind = kind or 'ObjectProperty'
     local c = o:GetClass()
     for _ = 1,4 do
         if not valid(c) then break end
         local found = false
         c:ForEachProperty(function(p)
-            if p:GetFName():ToString() == key and p:GetFullName():match('^ObjectProperty ') then found = true end
+            if p:GetFName():ToString() == key and p:GetFullName():match('^'..kind..' ') then found = true end
         end)
         if found then return true end
         c = c:GetSuperStruct()
@@ -109,7 +110,8 @@ function Ui:sync()
     local guest = self.api.guest_active()
     local pc, hud = guest and second or first, guest and h.guest or h.main
     local inv, esc = hud.W_PlayerInventory_Main, hud.W_EscapeMenu_Main
-    local target = visible(esc) and esc or (visible(inv) and visible(inv.InventoryMain) and inv or nil)
+    self.observed_inventory = visible(inv) and visible(inv.InventoryMain) and inv or nil
+    local target = visible(esc) and esc or self.observed_inventory
     local had_focus = self.focus~=nil
     if self.focus and not same(self.focus.pc,pc) then self:release() end
     if target then
@@ -129,11 +131,60 @@ function Ui:sync()
         self.api.log('UIFOCUS game input restored after menu closure')
     end
 end
+function Ui:close_inventory(pc, root)
+    local _, first, second = self.api.pair()
+    assert(same(pc,second) and same(second.Pawn,self.pawn), 'Guest character changed')
+    assert(same(root,self.api.huds().guest.W_PlayerInventory_Main) and
+        same(root:GetOwningPlayer(),second) and same(root.OwningCharacter,second.Pawn) and
+        same(second.Pawn.InventoryReference,root), 'Guest inventory ownership changed')
+    local func=self.api.find('/Game/Blueprints/Characters/Abiotic_PlayerCharacter.Abiotic_PlayerCharacter_C:ToggleInventory')
+    assert(valid(func), 'Character inventory close handler missing')
+    local expected={
+        {'ForceClose','BoolProperty'}, {'InventoryMode','EnumProperty'},
+        {'CraftingBenchesAvailable','ArrayProperty'}, {'ContainerInventoryComponent','ObjectProperty'},
+        {'CustomUIKeyboardFocus','BoolProperty'},
+    }
+    local count=0
+    func:ForEachProperty(function(p)
+        local key=p:GetFName():ToString()
+        if count<#expected then
+            count=count+1
+            assert(key==expected[count][1] and p:GetFullName():match('^'..expected[count][2]..' '),
+                'Unexpected character inventory close signature: '..p:GetFullName())
+        else
+            assert(key:match('^CallFunc_') or key:match('^K2Node_') or key:match('^Temp_'),
+                'Character inventory close has an unknown argument: '..p:GetFullName())
+        end
+    end)
+    assert(count==#expected, 'Incomplete character inventory close signature')
+    local flags=func:GetFunctionFlags()
+    assert(type(flags)=='number' and (flags & 0x40)==0 and (flags & 0x100000)==0,
+        'Expected a local character function, not an RPC or delegate')
+    -- This is a close-only request. Do not supply a new container or crafting
+    -- targets. Preserve the widget mode when it exposes a confirmed enum field;
+    -- otherwise zero-initialize the open-only mode option, with ForceClose=true.
+    local mode,source=0,'zero-initialized close option'
+    for _,key in ipairs({'InventoryMode','CurrentInventoryMode'}) do
+        if property(root,key,'EnumProperty') then
+            mode=root[key]; source=key
+            assert(type(mode)=='number' and mode%1==0 and mode>=0 and mode<=255, 'Invalid inventory mode')
+            break
+        end
+    end
+    local host=self.api.huds().main.W_PlayerInventory_Main
+    self.api.log('UICLOSE requesting guest Pawn.ToggleInventory ForceClose=true; mode='..mode..' ('..source..'); host displayed='..
+        tostring(visible(host) and visible(host.InventoryMain)))
+    func(second.Pawn,true,mode,{},nil,false)
+    self.api.log('UICLOSE character handler returned; guest displayed='..tostring(visible(root) and visible(root.InventoryMain)))
+end
 function Ui:key(kind)
     if not self.api.guest_active() then return end
     local _, _, second = self.api.pair()
     local root = self.api.huds().guest.W_PlayerInventory_Main
-    local close = kind=='escape' and visible(root) and visible(root.InventoryMain)
+    -- A native Tab opener may run before this game-thread callback. Only treat
+    -- Tab as a close intent if the inventory was observed open on the prior sync.
+    local close = visible(root) and visible(root.InventoryMain) and
+        (kind=='escape' or (kind=='tab' and same(self.observed_inventory,root)))
     self.generation=self.generation+1
     local ticket=self.generation
     self.api.delay(120,function()
@@ -143,14 +194,24 @@ function Ui:key(kind)
                 local _,_,current=self.api.pair()
                 assert(same(second,current), 'Input controller changed')
                 if close and visible(root) and visible(root.InventoryMain) then
-                    local func=self.api.find('/Game/Blueprints/Widgets/Inventory/W_PlayerInventory_Main.W_PlayerInventory_Main_C:CloseInventorySafely')
-                    assert(valid(func) and same(root:GetOwningPlayer(),second), 'Owned close handler missing')
-                    func:ForEachProperty(function(p)
-                        local key=p:GetFName():ToString()
-                        assert(key:match('^CallFunc_') or key:match('^K2Node_') or key:match('^Temp_'), 'Safe close has an unexpected argument')
+                    self:close_inventory(second,root)
+                    -- Allow the native close animation/state transition to settle
+                    -- before choosing keyboard focus again. One shot, no polling.
+                    self.api.delay(250,function()
+                        self.api.game_thread(function()
+                            if ticket~=self.generation or not self.api.guest_active() then return end
+                            local settled,message=pcall(function()
+                                local _,_,active=self.api.pair()
+                                assert(same(second,active) and same(active.Pawn,self.pawn) and
+                                    same(root,self.api.huds().guest.W_PlayerInventory_Main), 'Close context changed')
+                                local displayed=visible(root) and visible(root.InventoryMain)
+                                self.api.log('UICLOSE settled; guest displayed='..tostring(displayed))
+                                self:sync()
+                            end)
+                            if not settled then self.api.log('UICLOSE completion stopped: '..tostring(message)) end
+                        end)
                     end)
-                    func(root)
-                    self.api.log('UIFOCUS safe close returned; inventory displayed=' .. tostring(visible(root) and visible(root.InventoryMain)))
+                    return
                 end
                 self:sync()
             end)
@@ -174,5 +235,6 @@ function Ui:restore()
     self.refs={}
     self.pawn=nil
     self.cursors=nil
+    self.observed_inventory=nil
 end
 return Ui
