@@ -23,6 +23,7 @@ lua.execute((root / "tests" / "container_handoff_spec.lua").read_text(encoding="
 lua.execute((root / "tests" / "container_actions_spec.lua").read_text(encoding="utf-8"))
 lua.execute((root / "tests" / "container_delegates_spec.lua").read_text(encoding="utf-8"))
 lua.execute((root / "tests" / "script_probe_spec.lua").read_text(encoding="utf-8"))
+lua.execute((root / "tests" / "runtime_log_spec.lua").read_text(encoding="utf-8"))
 lua.execute((root / "tests" / "shared_pause_spec.lua").read_text(encoding="utf-8"))
 lua.execute((root / "tests" / "preview_ui_spec.lua").read_text(encoding="utf-8"))
 subprocess.run([sys.executable, str(root / 'tests/script_report_spec.py')], check=True)

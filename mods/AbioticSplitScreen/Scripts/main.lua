@@ -498,11 +498,10 @@ log('Experimental probe v0.8.2a container-only trial loaded. Guest container ope
 log('v0.8.3 container cache experiment retired: no matching character/backpack cache fields were found on the container widget and Take All still delivered items to host.')
 log('v0.8.4 delegate experiment retired: observed event receivers already belonged to the guest, changed=0; Take All still delivered items to host.')
 local ScriptProbe=require('script_probe')
+local RuntimeLog=require('runtime_log')
+local main_script_source=debug.getinfo(1,'S').source
 local script_probe=ScriptProbe.new({pair=function() return session:pair() end,huds=function() return hud_trial end,
     find=StaticFindObject,register=RegisterCustomProperty,types=PropertyTypes,log=log,
-    header=function()
-        local file=assert(io.open('UE4SS.log','rb'),'Current UE4SS.log header unavailable')
-        local text=file:read(262144);file:close();return text
-    end})
+    header=function() return RuntimeLog.read(main_script_source) end})
 handler_diagnostics=function() script_probe:dump() end
-log('Experimental probe v0.8.5 read-only handler diagnostic loaded. Open the guest container, press F6 once and send UE4SS.log. No item transfer is needed. Logged engine layout and native sanity checks gate the Script byte view; bytecode is never patched. Take All recipient bug remains unresolved.')
+log('Experimental probe v0.8.5a read-only handler diagnostic loaded. UE4SS.log is resolved from the absolute main.lua filename, not process CWD. Open the guest container, press F6 once and send UE4SS.log. No item transfer is needed. Runtime layout guards retained; bytecode is never patched. Take All recipient bug remains unresolved.')

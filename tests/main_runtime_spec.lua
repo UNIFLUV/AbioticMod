@@ -31,6 +31,7 @@ local function fixture()
         routing_probe={new=function() return {capture=function() event('route') end} end},
         inventory_ui={new=function() return ui end},
         script_probe={new=function() return {dump=function() event('script-report') end} end},
+        runtime_log={read=function() error('F1/F2/E must not read the log') end},
         container_handoff={new=function() return {
             remember=function() end,cancel=function() end,clear=function() end,
             key=function() event('container-key') end,
