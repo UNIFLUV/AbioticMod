@@ -30,7 +30,7 @@ local function fixture()
         hud_link={new=hud_link},
         routing_probe={new=function() return {capture=function() event('route') end} end},
         inventory_ui={new=function() return ui end},
-        container_actions={new=function() return {repair=function() end,clear=function() end} end},
+        container_delegates={new=function() return {repair=function() end,clear=function() end} end},
         container_handoff={new=function() return {
             remember=function() end,cancel=function() end,clear=function() end,
             key=function() event('container-key') end,
@@ -57,7 +57,7 @@ end
 local function test(name,fn) fn(); passed=passed+1; print('PASS '..name) end
 test('F2 completes both handoffs without loading or scanning waypoint experiment',function()
     local f=fixture()
-    for _,key in ipairs({'waypoint_ui','player_bindings','ui_context','shared_pause','container_ui','preview_ui'}) do
+    for _,key in ipairs({'waypoint_ui','player_bindings','ui_context','shared_pause','container_ui','preview_ui','container_actions'}) do
         assert(not f.modules[key], 'Recovery loaded a disabled experimental module: '..key)
     end
     assert(f.keys[0x45]~=nil and f.keys[0x01]==nil, 'Container trial must observe only E, with no mouse observer')
