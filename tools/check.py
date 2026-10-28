@@ -14,3 +14,4 @@ lua.execute((root / "tests" / "player_bindings_spec.lua").read_text(encoding="ut
 lua.execute((root / "tests" / "hud_link_spec.lua").read_text(encoding="utf-8"))
 lua.execute((root / "tests" / "inventory_ui_spec.lua").read_text(encoding="utf-8"))
 lua.execute((root / "tests" / "waypoint_ui_spec.lua").read_text(encoding="utf-8"))
+lua.execute((root / "tests" / "main_runtime_spec.lua").read_text(encoding="utf-8"))

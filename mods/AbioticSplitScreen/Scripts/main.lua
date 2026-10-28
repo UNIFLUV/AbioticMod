@@ -441,7 +441,12 @@ RegisterKeyBind(0x09,function() dispatch(function() inventory_ui:key('tab') end)
 RegisterKeyBind(0x1B,function() dispatch(function() inventory_ui:key('escape') end) end)
 log('Experimental probe v0.7.3 loaded. Inventory UI character links and focus/cursor trial; Esc retries the owned close handler when needed. Independent saves and animation remain pending.')
 
--- v0.7.4: displayed-widget checks, safe inventory close, scoped marker ownership.
+-- v0.7.4: displayed-widget checks and owned inventory close remain active.
+-- The user's v0.7.4 log ends inside the marker scan after F2; the user
+-- confirmed a crash/hang. Disable the entire automatic marker experiment,
+-- including enumeration and restoration, until native evidence is available.
+local ENABLE_WAYPOINT_EXPERIMENT = false
+if ENABLE_WAYPOINT_EXPERIMENT then
 local WaypointUi = require("waypoint_ui")
 local waypoint_ui = WaypointUi.new({pair=function() return session:pair() end, huds=function() return hud_trial end, find_all=FindAllOf, log=log})
 local marker_handoff = session.switch_input
@@ -452,4 +457,10 @@ function session:switch_input()
 end
 local marker_teardown = hud_link.restore
 function hud_link:restore() waypoint_ui:restore(); marker_teardown(self) end
-log('Experimental probe v0.7.4 loaded. Ancestor visibility/fade checks, owned CloseInventorySafely and guest waypoint ownership trial. Shared pause, animation and profiles remain pending.')
+end
+local completed_handoff = session.switch_input
+function session:switch_input()
+    completed_handoff(self)
+    log('F2 handoff complete; automatic waypoint scan disabled.')
+end
+log('Experimental probe v0.7.4a loaded. Automatic waypoint experiment disabled after a reported crash/hang during its scan. Inventory ownership, focus and owned safe-close trial retained. Marker projection, shared pause, animation and profiles remain pending.')

@@ -21,9 +21,9 @@ if (Test-Path -LiteralPath $main -PathType Leaf) {
             if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { $matched=$false; break }
             if ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash) { $matched=$false; break }
         }
-        if ($matched) { Write-Host 'v0.7.4 already installed.' -ForegroundColor Green; return }
+        if ($matched) { Write-Host 'v0.7.4a already installed.' -ForegroundColor Green; return }
     }
-    if ($oldHash -notin @($sourceHash, '74ef6062b9e6a7688644992db01837221b344c329a35e6c8935e05d43804b72e')) {
+    if ($oldHash -notin @($sourceHash, 'd4aeff2c592816aab7057227974335d442a0f174108df382240ddfa7914b7553', '74ef6062b9e6a7688644992db01837221b344c329a35e6c8935e05d43804b72e')) {
         throw 'Unknown main.lua version. Nothing changed; send the current file.'
     }
 }
@@ -56,4 +56,4 @@ catch {
     }
     throw
 }
-Write-Host 'Updated to v0.7.4. F1, wait, F2. Test Tab/Esc and quest marker. Send UE4SS.log.' -ForegroundColor Green
+Write-Host 'Updated to v0.7.4a. Waypoint scan disabled. F1, wait, F2, Tab, Esc. Send UE4SS.log.' -ForegroundColor Green
