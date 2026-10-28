@@ -21,9 +21,9 @@ if (Test-Path -LiteralPath $main -PathType Leaf) {
             if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { $matched=$false; break }
             if ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash) { $matched=$false; break }
         }
-        if ($matched) { Write-Host 'v0.8.5a read-only handler diagnostic already installed.' -ForegroundColor Green; return }
+        if ($matched) { Write-Host 'v0.8.5b read-only handler diagnostic already installed.' -ForegroundColor Green; return }
     }
-    if ($oldHash -notin @($sourceHash, '83a216b74ca5ca6c30318905f7a766825da4e14aa6bb70c36ca570e28f5fb4f6', 'afea27eb02a5c2a91a280ba779d8b9365c6f436eab7e3b58448504d581c88f54', 'bd850f0327cf8069f9675c11f993d48c2715767d61b841f69b5b2fc68870804d', 'f471c7d37a55e15a032152ad124491a407152a4285e170b78601dda6fe3e7858', 'b2ab35283ea3fcbca892e591cd295b888ce5536aa43ca7ad950491c6676f17a8', 'b6be7be81d721c1a28b9fa252f86d04cbe448db3a1a460a1b1ad88d9b2285d8b', 'f3650148c4b3f93035c5af7c3176b4d663d56b2b5de0a6288bc1f07f07d63fd9', 'a6442e3d72410596d91fc18ac059b2afd108840332e23bdaedb2f377ee79c257', 'e311d4e9aaec25d7777aae534b3fa48533a3e7c2cef8f953d7525fc6aafa595f', 'd4aeff2c592816aab7057227974335d442a0f174108df382240ddfa7914b7553', '74ef6062b9e6a7688644992db01837221b344c329a35e6c8935e05d43804b72e')) {
+    if ($oldHash -notin @($sourceHash, 'bd49f6098ad5b7f3cf2cb95dff3590992153262fcd72075246a5d4f28ab862aa', '83a216b74ca5ca6c30318905f7a766825da4e14aa6bb70c36ca570e28f5fb4f6', 'afea27eb02a5c2a91a280ba779d8b9365c6f436eab7e3b58448504d581c88f54', 'bd850f0327cf8069f9675c11f993d48c2715767d61b841f69b5b2fc68870804d', 'f471c7d37a55e15a032152ad124491a407152a4285e170b78601dda6fe3e7858', 'b2ab35283ea3fcbca892e591cd295b888ce5536aa43ca7ad950491c6676f17a8', 'b6be7be81d721c1a28b9fa252f86d04cbe448db3a1a460a1b1ad88d9b2285d8b', 'f3650148c4b3f93035c5af7c3176b4d663d56b2b5de0a6288bc1f07f07d63fd9', 'a6442e3d72410596d91fc18ac059b2afd108840332e23bdaedb2f377ee79c257', 'e311d4e9aaec25d7777aae534b3fa48533a3e7c2cef8f953d7525fc6aafa595f', 'd4aeff2c592816aab7057227974335d442a0f174108df382240ddfa7914b7553', '74ef6062b9e6a7688644992db01837221b344c329a35e6c8935e05d43804b72e')) {
         throw 'Unknown main.lua version. Nothing changed; send the current file.'
     }
 }
@@ -56,4 +56,4 @@ catch {
     }
     throw
 }
-Write-Host 'Updated to v0.8.5a read-only handler diagnostic. Native v0.8 hooks remain disabled. Restart fully. F1, wait, F2, E on container, F6 once, send UE4SS.log with SCRIPTTRACE. No item transfer needed. Take All recipient remains unresolved.' -ForegroundColor Green
+Write-Host 'Updated to v0.8.5b read-only handler diagnostic. Native v0.8 hooks remain disabled. Restart fully. F1, wait, F2, E on container, F6 once, send UE4SS.log with SCRIPTTRACE. No item transfer needed. Take All recipient remains unresolved.' -ForegroundColor Green

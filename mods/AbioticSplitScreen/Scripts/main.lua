@@ -504,4 +504,4 @@ local script_probe=ScriptProbe.new({pair=function() return session:pair() end,hu
     find=StaticFindObject,register=RegisterCustomProperty,types=PropertyTypes,log=log,
     header=function() return RuntimeLog.read(main_script_source) end})
 handler_diagnostics=function() script_probe:dump() end
-log('Experimental probe v0.8.5a read-only handler diagnostic loaded. UE4SS.log is resolved from the absolute main.lua filename, not process CWD. Open the guest container, press F6 once and send UE4SS.log. No item transfer is needed. Runtime layout guards retained; bytecode is never patched. Take All recipient bug remains unresolved.')
+log('Experimental probe v0.8.5b read-only handler diagnostic loaded. Script metadata uses each exact function structure rather than its Function class. Absolute log path and all runtime/address/bounds guards retained. Open the guest container, press F6 once and send UE4SS.log. No item transfer needed; bytecode is never patched. Take All recipient bug remains unresolved.')

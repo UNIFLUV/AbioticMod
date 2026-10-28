@@ -3,13 +3,13 @@
 -- No bytecode/array writes, item operations, hooks, or arbitrary pointer wrapping.
 local Probe={}
 Probe.__index=Probe
-local ALIAS='AbioticSplitScreen_ReadOnlyScriptBytes_v1'
+local ALIAS='AbioticSplitScreen_ReadOnlyScriptBytes_v2_'
 local MAX_FUNCTION=131072
 local MAX_TOTAL=262144
 local function valid(o) return o~=nil and o:IsValid() end
 local function same(a,b) return valid(a) and valid(b) and a:GetAddress()==b:GetAddress() end
 local function integer(n) return type(n)=='number' and n%1==0 end
-function Probe.new(api) return setmetatable({api=api},Probe) end
+function Probe.new(api) return setmetatable({api=api,views={}},Probe) end
 function Probe:prepare()
     if self.offset then return end
     local header=self.api.header()
@@ -30,12 +30,7 @@ function Probe:prepare()
     local native=self.api.find('/Script/Engine.GameplayStatics:GetPlayerController')
     assert(valid(class) and valid(native) and same(native:GetClass(),class) and
         (native:GetFunctionFlags() & 0x400)~=0,'Native function sanity check unavailable')
-    if not self.registered then
-        self.api.register({Name=ALIAS,Type=types.ArrayProperty,BelongsToClass='/Script/CoreUObject.Function',
-            OffsetInternal=offset,ArrayProperty={Type=types.ByteProperty}})
-        self.registered=true
-    end
-    self.offset=offset
+    self.offset=offset;self.function_class=class
     local ok,message=pcall(function()
         local _,n=self:array(native)
         assert(n==0,'Native function Script is not empty; read-only view rejected')
@@ -44,9 +39,24 @@ function Probe:prepare()
 end
 function Probe:array(f)
     assert(valid(f),'Script function expired')
-    local a=f[ALIAS]
-    assert(a~=nil and type(a.GetArrayAddress)=='function' and
-        a:GetArrayAddress()==f:GetAddress()+self.offset,'Script view does not point to the logged field')
+    assert(self.offset and same(f:GetClass(),self.function_class),'Script view requires a validated UFunction')
+    local address=f:GetAddress()
+    local alias=self.views[address]
+    if not alias then
+        -- Exact 1ba38db4 LuaCustomProperty::PropertyList::for_each uses the
+        -- UStruct itself as owner for UFunction, not GetClass(). A property
+        -- belonging to CoreUObject.Function therefore cannot resolve here.
+        -- Scope metadata to this exact, re-resolved function structure.
+        local path=f:GetFullName():match('^Function (.+)$')
+        assert(path and same(self.api.find(path),f),'Script function path no longer resolves to the same object')
+        alias=ALIAS..string.format('%x',address)
+        self.api.register({Name=alias,Type=self.api.types.ArrayProperty,BelongsToClass=path,
+            OffsetInternal=self.offset,ArrayProperty={Type=self.api.types.ByteProperty}})
+        self.views[address]=alias
+    end
+    local a=f[alias]
+    assert(a~=nil and type(a.GetArrayAddress)=='function','Script view unavailable for the exact function owner')
+    assert(a:GetArrayAddress()==address+self.offset,'Script view does not point to the logged field')
     local n,max=a:GetArrayNum(),a:GetArrayMax()
     assert(integer(n) and integer(max) and n>=0 and max>=n and max<=1048576,'Invalid Script array bounds')
     if n>0 then
