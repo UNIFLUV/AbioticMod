@@ -203,7 +203,7 @@ ToggleInventory вернулся с `guest displayed=false`, повторная 
 **v0.8 — следующая проверяемая итерация:**
 
 - `ui_context.lua` проверяет сигнатуры нативных GetPlayerController/GetPlayerCharacter/
-  GetPlayerPawn/GetAbioticPlayerCharacter. Индекс 0 заменяется на 1 только для UMG-контекста
+  GetPlayerPawn/GetPlayerCameraManager/GetAbioticPlayerCharacter. Индекс 0 заменяется на 1 только для UMG-контекста
   с подтверждённым гостевым владельцем. Контексты Pawn, Controller, мира и общих акторов
   сохраняют исходные правила игры; перехватов IsLocalCharacter и изменений save identity нет.
   Для UMG ProjectWorldLocationToWidgetPosition и игрового ProjectWorldToScreenClamped

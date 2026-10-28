@@ -49,6 +49,9 @@ end
 local function test(name,fn) fn();passed=passed+1;print('PASS '..name) end
 test('UI lookup index zero follows the actual guest widget owner',function()
     local f=fixture(); assert(f.lookup(f.widget,0)==1)
+    local camera_index=param(0)
+    f.hooks['/Script/Engine.GameplayStatics:GetPlayerCameraManager'](nil,param(f.widget),camera_index)
+    assert(camera_index.value==1)
     f.widget.owner=f.first; assert(f.lookup(f.widget,0)==0)
 end)
 test('explicit nonzero indices and unknown widget owners are preserved',function()

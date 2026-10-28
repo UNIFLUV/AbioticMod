@@ -58,6 +58,7 @@ function Router:install()
         '/Script/Engine.GameplayStatics:GetPlayerController',
         '/Script/Engine.GameplayStatics:GetPlayerCharacter',
         '/Script/Engine.GameplayStatics:GetPlayerPawn',
+        '/Script/Engine.GameplayStatics:GetPlayerCameraManager',
         '/Script/AbioticFactor.AbioticFunctionLibrary:GetAbioticPlayerCharacter',
     }) do
         if not self.hooks[path] then
