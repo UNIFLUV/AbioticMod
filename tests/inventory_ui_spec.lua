@@ -7,7 +7,6 @@ local function object(schema)
     function o:GetAddress() return self.id end
     function o:GetClass() return class end
     function o:GetVisibility() return self.visibility or 1 end
-    function o:IsA(k) return self.actor_component and k=='/Script/Engine.ActorComponent' end
     function class:IsValid() return true end
     function class:GetSuperStruct() return nil end
     function class:ForEachProperty(cb)
@@ -38,7 +37,6 @@ local function fixture()
         return h
     end
     f.h={main=hud(f.first),guest=hud(f.second)}
-    f.first.Pawn.InventoryReference=f.h.main.W_PlayerInventory_Main
     f.second.Pawn.InventoryReference=f.h.guest.W_PlayerInventory_Main
     local library=object()
     local function fn(names,callback)
@@ -66,17 +64,10 @@ local function fixture()
     end)
     local close=fn({'ForceClose','InventoryMode','CraftingBenchesAvailable','ContainerInventoryComponent','CustomUIKeyboardFocus','Temp_int_Array_Index_Variable'},
         function(pawn,force,mode,benches,container,focus)
-            assert((pawn==f.first.Pawn or pawn==f.second.Pawn) and type(mode)=='number')
-            assert(type(benches)=='table' and next(benches)==nil and focus==false)
-            local root=pawn==f.first.Pawn and f.h.main.W_PlayerInventory_Main or f.h.guest.W_PlayerInventory_Main
-            if force then
-                assert(container==nil)
-                if not f.closeNoop then root.visibility=1 end
-                f.closes=f.closes+1; f.closeMode=mode
-            else
-                assert(pawn==f.second.Pawn and container.actor_component)
-                root.ActiveContainer=container;root.visibility=0;f.opened=(f.opened or 0)+1
-            end
+            assert(pawn==f.second.Pawn and force==true and type(mode)=='number')
+            assert(type(benches)=='table' and next(benches)==nil and container==nil and focus==false)
+            if not f.closeNoop then f.h.guest.W_PlayerInventory_Main.visibility=1 end
+            f.closes=f.closes+1; f.closeMode=mode
         end)
     f.closeFunction=close
     f.ui=Ui.new({pair=function() return {},f.first,f.second end, huds=function() return f.h end,
@@ -250,30 +241,5 @@ test('handoff cancels pending settled-focus work after the native close request'
     local f=fixture(); f.ui:bind(); f.h.guest.W_PlayerInventory_Main.visibility=0
     f.ui:key('escape'); f.timers[1](); f.guest=false; f.timers[2]()
     assert(f.closes==1 and #f.modes==0)
-end)
-test('native container handoff closes the confirmed host UI and opens the same component on the guest',function()
-    local f=fixture();f.ui:bind()
-    local root=f.h.main.W_PlayerInventory_Main
-    local class=root:GetClass();local original=class.ForEachProperty
-    function class:ForEachProperty(cb)
-        original(self,cb)
-        local p={}
-        function p:GetFName() return {ToString=function() return 'InventoryMode' end} end
-        function p:GetFullName() return 'EnumProperty Fixture:InventoryMode' end
-        cb(p)
-    end
-    local component=object();component.actor_component=true
-    root.InventoryMode,root.ActiveContainer,root.visibility=2,component,0
-    local mode=f.ui:container_mode(root)
-    f.ui:close_host_container(component);f.ui:open_guest_container(component,mode)
-    assert(root.visibility==1 and f.h.guest.W_PlayerInventory_Main.visibility==0)
-    assert(f.closes==1 and f.opened==1 and f.h.guest.W_PlayerInventory_Main.ActiveContainer==component)
-end)
-test('unknown container mode and changed host component prevent host closure',function()
-    local f=fixture();f.ui:bind();local component=object();component.actor_component=true
-    local root=f.h.main.W_PlayerInventory_Main;root.ActiveContainer=component;root.visibility=0
-    assert(not pcall(function() f.ui:close_host_container(component) end))
-    assert(not pcall(function() f.ui:close_host_container(object()) end))
-    assert(f.closes==0 and root.visibility==0)
 end)
 print(passed .. ' inventory UI tests passed (mock API; actual game binding/delegates and cursor require validation).')

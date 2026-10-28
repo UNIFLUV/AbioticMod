@@ -438,8 +438,7 @@ function session:switch_input()
     if not ok then log('UIFOCUS handoff: ' .. tostring(message)) end
 end
 RegisterKeyBind(0x09,function() dispatch(function() inventory_ui:key('tab') end) end)
-local escape_handler=function() inventory_ui:key('escape') end
-RegisterKeyBind(0x1B,function() dispatch(escape_handler) end)
+RegisterKeyBind(0x1B,function() dispatch(function() inventory_ui:key('escape') end) end)
 log('Experimental probe v0.7.3 loaded. Inventory UI character links and focus/cursor trial; Esc retries the owned close handler when needed. Independent saves and animation remain pending.')
 
 -- v0.7.4: displayed-widget checks and owned inventory close remain active.
@@ -467,82 +466,5 @@ end
 log('Experimental probe v0.7.4a loaded. Automatic waypoint experiment disabled after a reported crash/hang during its scan. Inventory ownership, focus and owned safe-close trial retained. Marker projection, shared pause, animation and profiles remain pending.')
 log('Experimental probe v0.7.5 loaded. Guest Tab/Esc close fallback uses its own Pawn.ToggleInventory with ForceClose=true; settled visibility is logged. Waypoint scan remains disabled. Native closure still needs game validation.')
 
--- v0.8: scoped native UI routing, isolated shared-menu presentation, container
--- handoff and private preview resources. No gameplay-locality or save overrides.
-local UiContext=require('ui_context')
-local ui_context=UiContext.new({pair=function() return session:pair() end,
-    find=StaticFindObject,hook=RegisterHook,log=log})
-local SharedPause=require('shared_pause')
-local shared_pause=SharedPause.new({pair=function() return session:pair() end,huds=function() return hud_trial end,
-    find=StaticFindObject,find_first=FindFirstOf,hook=RegisterHook,game_thread=ExecuteInGameThread,
-    delay=ExecuteWithDelay,visible=InventoryUi.visible,log=log,
-    focus=function(pc,widget)
-        inventory_ui.generation=inventory_ui.generation+1
-        inventory_ui:focus_menu(pc,widget)
-    end,
-    unfocus=function(pc)
-        inventory_ui:mode(pc,nil); inventory_ui:release(); inventory_ui:sync()
-    end})
-local ContainerUi=require('container_ui')
-local container_ui=ContainerUi.new({pair=function() return session:pair() end,huds=function() return hud_trial end,
-    guest_active=function() return session.input_backup~=nil end,visible=InventoryUi.visible,
-    states=function() return inventory_ui.inventory_states end,delay=ExecuteWithDelay,game_thread=ExecuteInGameThread,
-    mode=function(root) return inventory_ui:container_mode(root) end,
-    close_host=function(component) inventory_ui:close_host_container(component) end,
-    open_guest=function(component,mode) inventory_ui:open_guest_container(component,mode) end,
-    sync=function() inventory_ui:sync() end,log=log})
-local PreviewUi=require('preview_ui')
-local preview_ui=PreviewUi.new({pair=function() return session:pair() end,huds=function() return hud_trial end,
-    find=StaticFindObject,fname=FName,visible=InventoryUi.visible,log=log})
-local native_ui_bind=hud_link.bind
-function hud_link:bind()
-    native_ui_bind(self)
-    ui_context:bind(); ui_context:install()
-    local ok,message=pcall(function() shared_pause:bind() end)
-    if not ok then log('SHAREDPAUSE unavailable: '..tostring(message)) end
-end
-local native_ui_restore=hud_link.restore
-function hud_link:restore()
-    container_ui:cancel(); shared_pause:restore(); preview_ui:restore(); ui_context:restore()
-    native_ui_restore(self)
-end
-local preview_sync=inventory_ui.sync
-function inventory_ui:sync()
-    preview_sync(self)
-    local ok,message=pcall(function() preview_ui:repair() end)
-    if not ok then log('PREVIEW unchanged: '..tostring(message)) end
-end
-local native_ui_handoff=session.switch_input
-function session:switch_input()
-    if shared_pause.active then log('SHAREDPAUSE close the common menu before F2'); return end
-    container_ui:cancel()
-    native_ui_handoff(self)
-    ui_context:diagnose()
-    local ok,message=pcall(function()
-        local _,first,second=self:pair()
-        local function private_string(value)
-            if type(value)=='string' then return value end
-            local checked,text=pcall(function() return value:ToString() end)
-            if checked and type(text)=='string' then return text end
-        end
-        for _,field in ipairs({'PlayerSaveID','UniquePlayerID'}) do
-            local a,b=private_string(first.PlayerState[field]),private_string(second.PlayerState[field])
-            if a and b then
-                log('PROFILE '..field..' equal='..tostring(a==b)..'; host empty='..tostring(a=='')..'; guest empty='..tostring(b==''))
-            else log('PROFILE '..field..' comparison unavailable') end
-        end
-        log('PROFILE guest received='..tostring(second.ClientHasRecievedCharacter)..'; traits='..tostring(second.HasCompletedTraitSelect)..'; no identifiers or save flags were changed')
-        local a,b=first.Pawn.CharacterPane_RenderTarget,second.Pawn.CharacterPane_RenderTarget
-        if valid(a) and valid(b) then log('PREVIEW capture targets shared='..tostring(same(a.TextureTarget,b.TextureTarget))) end
-    end)
-    if not ok then log('PROFILE read-only status unavailable: '..tostring(message)) end
-end
-escape_handler=function()
-    if not shared_pause.active then inventory_ui:key('escape') end
-    shared_pause:key()
-end
-RegisterKeyBind(0x45,function() dispatch(function() container_ui:key() end) end)
-RegisterKeyBind(0x01,function()
-    if shared_pause.active then dispatch(function() shared_pause:check_later() end) end
-end)
-log('Experimental probe v0.8 loaded. Native lookups route only owned guest UI; common Esc menu, matching-container handoff and verified private preview resources are trials. Guest creator/perks/persistent identity remain unfinished. No dynamic waypoint scan or gameplay-locality overrides enabled.')
+-- Recovery: run the user-verified v0.7.5 UI path; no v0.8 modules or hooks.
+log('Experimental probe v0.8.1 recovery loaded. All v0.8 native UI/projection/pause hooks, container handoff and preview changes are disabled. User-verified v0.7.5 inventory close retained. Original half-screen Esc and marker behavior restored; independent profiles remain unfinished.')
