@@ -115,6 +115,7 @@ function Bridge:key()
                 assert(valid(r.component) and (same(r.component,r.target) or same(r.component:GetOwner(),r.target)),
                     'Container component changed during close')
                 r.handler(r.guest_pawn,false,r.mode,{},r.component,false)
+                if same(guest.ActiveContainer,r.component) then self.api.bind_container(r.component) end
                 self.api.log('CONTAINER matching guest open requested; awaiting actual UI result')
                 self.api.delay(250,function()
                     self.api.game_thread(function()
@@ -125,7 +126,7 @@ function Bridge:key()
                             self.api.log('CONTAINER settled; guest displayed='..tostring(self:displayed(guest))..
                                 '; matching component='..tostring(same(guest.ActiveContainer,r.component))..
                                 '; host displayed='..tostring(self:displayed(host)))
-                            if not success then self:restore_host(r) end
+                            if success then self.api.bind_container(r.component) else self:restore_host(r) end
                             self.api.sync()
                         end)
                         if not settled then self.api.log('CONTAINER completion stopped: '..tostring(why)) end

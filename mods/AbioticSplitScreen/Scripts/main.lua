@@ -471,10 +471,15 @@ log('v0.8.1 recovery base retained. Legacy v0.8 native UI/projection/pause hooks
 
 -- v0.8.2: isolate container repair from the disabled native-hook experiments.
 local ContainerHandoff=require('container_handoff')
+local ContainerActions=require('container_actions')
+local container_actions=ContainerActions.new({pair=function() return session:pair() end,
+    huds=function() return hud_trial end,property=InventoryUi.property,
+    bind=function() inventory_ui:bind() end,log=log})
 local container_handoff=ContainerHandoff.new({pair=function() return session:pair() end,
     huds=function() return hud_trial end,guest_active=function() return session.input_backup~=nil end,
     visible=InventoryUi.visible,property=InventoryUi.property,find=StaticFindObject,
     delay=ExecuteWithDelay,game_thread=ExecuteInGameThread,log=log,
+    bind_container=function(component) return container_actions:repair(component) end,
     sync=function() inventory_ui:sync() end})
 local inventory_sync=inventory_ui.sync
 function inventory_ui:sync()
@@ -487,6 +492,7 @@ function inventory_ui:key(kind) container_handoff:cancel(); inventory_key(self,k
 local container_switch=session.switch_input
 function session:switch_input() container_handoff:cancel(); container_switch(self) end
 local container_restore=hud_link.restore
-function hud_link:restore() container_handoff:clear(); container_restore(self) end
+function hud_link:restore() container_handoff:clear(); container_actions:clear(); container_restore(self) end
 RegisterKeyBind(0x45,function() dispatch(function() container_handoff:key() end) end)
 log('Experimental probe v0.8.2a container-only trial loaded. Guest container open/close was observed in v0.8.2; an absent E target is now re-read once after native interaction. Valid mismatched targets still block handoff. Native hooks, shared pause, marker and preview experiments remain disabled. Independent profiles remain unfinished.')
+log('Experimental probe v0.8.3 container-action context trial loaded. Guest Take All/F was reported to deliver items to host in v0.8.2a. Guest UI character links refresh after native setup; exact host backpack/controller caches on the owned container widget may be rebound. LOOTUI records action metadata. Item destination still requires game validation; no item/save operations or native hooks added.')

@@ -11,7 +11,7 @@ local function object()
     return o
 end
 local function fixture()
-    local f={timers={},logs={},calls={},syncs=0,active=true}
+    local f={timers={},logs={},calls={},syncs=0,refreshes=0,active=true}
     f.world,f.first,f.second=object(),object(),object()
     f.first.Pawn,f.second.Pawn=object(),object()
     f.host,f.guest,f.target,f.component=object(),object(),object(),object()
@@ -61,6 +61,10 @@ local function fixture()
         visible=function(w) return w~=nil and w:IsValid() and w.shown end,
         property=function(root,key,kind) return not f.badModeField and root==f.host and key=='InventoryMode' and kind=='EnumProperty' end,
         find=function() return f.handler end,
+        bind_container=function(component)
+            assert(component==f.component and f.guest.ActiveContainer==component)
+            f.refreshes=f.refreshes+1
+        end,
         delay=function(_,cb) f.timers[#f.timers+1]=cb end,game_thread=function(cb) cb() end,
         sync=function() f.syncs=f.syncs+1;f.bridge:remember() end,
         log=function(s) f.logs[#f.logs+1]=s end})
@@ -74,7 +78,8 @@ test('E transfers only the matching new host container through each character ha
     local f=fixture();f:interact()
     assert(#f.calls==2 and f.calls[1].pawn==f.first.Pawn and f.calls[1].close)
     assert(f.calls[2].pawn==f.second.Pawn and not f.calls[2].close and f.calls[2].component==f.component)
-    f:step();assert(f.guest.shown and not f.host.shown and f.syncs==1 and #f.timers==0)
+    assert(f.refreshes==1)
+    f:step();assert(f.guest.shown and not f.host.shown and f.syncs==1 and #f.timers==0 and f.refreshes==2)
     assert(table.concat(f.logs,' '):find('matching component=true; host displayed=false',1,true))
 end)
 test('pre-existing host inventory is preserved even when its container matches',function()

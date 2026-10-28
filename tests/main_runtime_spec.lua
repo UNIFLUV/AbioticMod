@@ -30,6 +30,7 @@ local function fixture()
         hud_link={new=hud_link},
         routing_probe={new=function() return {capture=function() event('route') end} end},
         inventory_ui={new=function() return ui end},
+        container_actions={new=function() return {repair=function() end,clear=function() end} end},
         container_handoff={new=function() return {
             remember=function() end,cancel=function() end,clear=function() end,
             key=function() event('container-key') end,
