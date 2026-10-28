@@ -30,6 +30,10 @@ local function fixture()
         hud_link={new=hud_link},
         routing_probe={new=function() return {capture=function() event('route') end} end},
         inventory_ui={new=function() return ui end},
+        container_handoff={new=function() return {
+            remember=function() end,cancel=function() end,clear=function() end,
+            key=function() event('container-key') end,
+        } end},
     }
     local function forbidden() error('Unexpected native/global scan in bootstrap or handoff') end
     local env = setmetatable({
@@ -55,13 +59,17 @@ test('F2 completes both handoffs without loading or scanning waypoint experiment
     for _,key in ipairs({'waypoint_ui','player_bindings','ui_context','shared_pause','container_ui','preview_ui'}) do
         assert(not f.modules[key], 'Recovery loaded a disabled experimental module: '..key)
     end
-    assert(f.keys[0x45]==nil and f.keys[0x01]==nil, 'Recovery registered a v0.8 interaction observer')
+    assert(f.keys[0x45]~=nil and f.keys[0x01]==nil, 'Container trial must observe only E, with no mouse observer')
     f.keys.F2()
     assert(f.session.input_backup and table.concat(f.events,',')=='ui-bind,link,guest,route,focus')
     assert(f.logs[#f.logs]:find('F2 handoff complete',1,true))
     f.events={}; f.keys.F2()
     assert(not f.session.input_backup and table.concat(f.events,',')=='host,route,focus')
     assert(f.logs[#f.logs]:find('F2 handoff complete',1,true))
+end)
+test('E reaches only the isolated container handoff without registering native hooks',function()
+    local f=fixture();f.keys[0x45]()
+    assert(table.concat(f.events,',')=='container-key')
 end)
 test('Tab and Esc remain registered once and reach the inventory handler',function()
     local f=fixture(); f.keys[0x09](); f.keys[0x1B]()

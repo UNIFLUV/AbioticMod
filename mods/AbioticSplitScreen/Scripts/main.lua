@@ -467,4 +467,26 @@ log('Experimental probe v0.7.4a loaded. Automatic waypoint experiment disabled a
 log('Experimental probe v0.7.5 loaded. Guest Tab/Esc close fallback uses its own Pawn.ToggleInventory with ForceClose=true; settled visibility is logged. Waypoint scan remains disabled. Native closure still needs game validation.')
 
 -- Recovery: run the user-verified v0.7.5 UI path; no v0.8 modules or hooks.
-log('Experimental probe v0.8.1 recovery loaded. All v0.8 native UI/projection/pause hooks, container handoff and preview changes are disabled. User-verified v0.7.5 inventory close retained. Original half-screen Esc and marker behavior restored; independent profiles remain unfinished.')
+log('v0.8.1 recovery base retained. Legacy v0.8 native UI/projection/pause hooks, container_ui and preview_ui remain disabled. User-verified v0.7.5 inventory close retained; independent profiles remain unfinished.')
+
+-- v0.8.2: isolate container repair from the disabled native-hook experiments.
+local ContainerHandoff=require('container_handoff')
+local container_handoff=ContainerHandoff.new({pair=function() return session:pair() end,
+    huds=function() return hud_trial end,guest_active=function() return session.input_backup~=nil end,
+    visible=InventoryUi.visible,property=InventoryUi.property,find=StaticFindObject,
+    delay=ExecuteWithDelay,game_thread=ExecuteInGameThread,log=log,
+    sync=function() inventory_ui:sync() end})
+local inventory_sync=inventory_ui.sync
+function inventory_ui:sync()
+    inventory_sync(self)
+    local ok,message=pcall(function() container_handoff:remember() end)
+    if not ok then log('CONTAINER prior state unavailable: '..tostring(message)) end
+end
+local inventory_key=inventory_ui.key
+function inventory_ui:key(kind) container_handoff:cancel(); inventory_key(self,kind) end
+local container_switch=session.switch_input
+function session:switch_input() container_handoff:cancel(); container_switch(self) end
+local container_restore=hud_link.restore
+function hud_link:restore() container_handoff:clear(); container_restore(self) end
+RegisterKeyBind(0x45,function() dispatch(function() container_handoff:key() end) end)
+log('Experimental probe v0.8.2 container-only trial loaded. E can hand off a newly misrouted matching container to the guest; native hooks, shared pause, marker and preview experiments remain disabled. Independent profiles remain unfinished.')

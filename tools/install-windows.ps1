@@ -21,9 +21,9 @@ if (Test-Path -LiteralPath $main -PathType Leaf) {
             if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { $matched=$false; break }
             if ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash) { $matched=$false; break }
         }
-        if ($matched) { Write-Host 'v0.8.1 recovery already installed.' -ForegroundColor Green; return }
+        if ($matched) { Write-Host 'v0.8.2 container-only trial already installed.' -ForegroundColor Green; return }
     }
-    if ($oldHash -notin @($sourceHash, 'f3650148c4b3f93035c5af7c3176b4d663d56b2b5de0a6288bc1f07f07d63fd9', 'a6442e3d72410596d91fc18ac059b2afd108840332e23bdaedb2f377ee79c257', 'e311d4e9aaec25d7777aae534b3fa48533a3e7c2cef8f953d7525fc6aafa595f', 'd4aeff2c592816aab7057227974335d442a0f174108df382240ddfa7914b7553', '74ef6062b9e6a7688644992db01837221b344c329a35e6c8935e05d43804b72e')) {
+    if ($oldHash -notin @($sourceHash, 'b6be7be81d721c1a28b9fa252f86d04cbe448db3a1a460a1b1ad88d9b2285d8b', 'f3650148c4b3f93035c5af7c3176b4d663d56b2b5de0a6288bc1f07f07d63fd9', 'a6442e3d72410596d91fc18ac059b2afd108840332e23bdaedb2f377ee79c257', 'e311d4e9aaec25d7777aae534b3fa48533a3e7c2cef8f953d7525fc6aafa595f', 'd4aeff2c592816aab7057227974335d442a0f174108df382240ddfa7914b7553', '74ef6062b9e6a7688644992db01837221b344c329a35e6c8935e05d43804b72e')) {
         throw 'Unknown main.lua version. Nothing changed; send the current file.'
     }
 }
@@ -56,4 +56,4 @@ catch {
     }
     throw
 }
-Write-Host 'Updated to v0.8.1 recovery. All v0.8 trials disabled; verified v0.7.5 inventory code restored. Restart fully. F1, wait, F2, Tab/Esc.' -ForegroundColor Green
+Write-Host 'Updated to v0.8.2 container-only trial. Native v0.8 hooks remain disabled. Restart fully. F1, wait, F2, approach a container and press E. Tab/Esc closes the guest window.' -ForegroundColor Green

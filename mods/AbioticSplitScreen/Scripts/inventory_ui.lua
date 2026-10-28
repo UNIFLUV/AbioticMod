@@ -237,4 +237,6 @@ function Ui:restore()
     self.cursors=nil
     self.observed_inventory=nil
 end
+Ui.visible=visible
+Ui.property=property
 return Ui
