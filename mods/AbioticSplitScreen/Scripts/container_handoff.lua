@@ -87,9 +87,21 @@ function Bridge:key()
                     same(before.host_pawn,r.host_pawn) and same(before.guest_pawn,r.guest_pawn) and
                     same(before.host,host) and same(before.guest,guest) and before.displayed==false,
                     'Host menu was already open or its prior state is unknown')
-                assert(valid(r.target),'Guest target unavailable; no container was transferred')
                 r.component=host.ActiveContainer
                 assert(valid(r.component) and r.component:IsA('/Script/Engine.ActorComponent'),'Opened window has no container component')
+                -- E may be observed before the native interaction updates this
+                -- pawn's target. Re-read once, only when the initial target was
+                -- absent. A valid but different target is never replaced.
+                if not valid(r.target) then
+                    r.target=r.guest_pawn.BestInteractable_InteractA
+                    if valid(r.target) then self.api.log('CONTAINER guest target captured after native interaction') end
+                end
+                assert(valid(r.target),'Guest target unavailable at E and after interaction; no container was transferred')
+                if not same(r.component,r.target) and not same(r.component:GetOwner(),r.target) then
+                    local live=r.guest_pawn.BestInteractable_InteractA
+                    self.api.log('CONTAINER target mismatch; current guest target matches container='..
+                        tostring(same(r.component,live) or same(r.component:GetOwner(),live)))
+                end
                 assert(same(r.component,r.target) or same(r.component:GetOwner(),r.target),
                     'Host container differs from the guest interaction target')
                 assert(self.api.property(host,'InventoryMode','EnumProperty'),'Container mode enum missing')

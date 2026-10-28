@@ -489,4 +489,4 @@ function session:switch_input() container_handoff:cancel(); container_switch(sel
 local container_restore=hud_link.restore
 function hud_link:restore() container_handoff:clear(); container_restore(self) end
 RegisterKeyBind(0x45,function() dispatch(function() container_handoff:key() end) end)
-log('Experimental probe v0.8.2 container-only trial loaded. E can hand off a newly misrouted matching container to the guest; native hooks, shared pause, marker and preview experiments remain disabled. Independent profiles remain unfinished.')
+log('Experimental probe v0.8.2a container-only trial loaded. Guest container open/close was observed in v0.8.2; an absent E target is now re-read once after native interaction. Valid mismatched targets still block handoff. Native hooks, shared pause, marker and preview experiments remain disabled. Independent profiles remain unfinished.')
