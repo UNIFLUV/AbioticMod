@@ -414,46 +414,7 @@ local function widget(owner, in_viewport)
     return result
 end
 
-test("HUD diagnostics distinguish owners and omit widgets not directly in viewport", function()
-    local f, keys, queued = entrypoint_fixture()
-    keys.F7()
-    queued[1]()
-    f.widgets = { widget(f.primary, true), widget(f.secondary, true), widget(f.primary, false), widget(nil, true) }
-    local wrapper = object()
-    wrapper.address = f.primary.address
-    f.widgets[1] = widget(wrapper, true)
-    keys.F6()
-    queued[2]()
-    local logs = table.concat(f.logs, "\n")
-    assert(logs:find("HUD root 1 owner: Player 0", 1, true))
-    assert(logs:find("HUD root 2 owner: Player 1", 1, true))
-    assert(logs:find("HUD root 3 owner: NONE", 1, true))
-    assert(logs:find("4 widget instances; 3 viewport roots reported; 0 filter errors", 1, true))
-    assert(f.creates == 1 and f.removes == 0 and #f.instance.LocalPlayers == 2)
-end)
-
-test("expired widget does not stop the HUD scan", function()
-    local f, keys, queued = entrypoint_fixture()
-    f.widgets = { object(), widget(f.primary, true) }
-    keys.F6()
-    queued[1]()
-    local logs = table.concat(f.logs, "\n")
-    assert(logs:find("HUD root 1 owner: Player 0", 1, true))
-    assert(logs:find("1 viewport roots reported; 1 filter errors", 1, true))
-    assert(f.creates == 0 and f.removes == 0)
-end)
-
-test("HUD inspection bounds log output and reports truncation", function()
-    local f, keys, queued = entrypoint_fixture()
-    f.widgets = {}
-    for index = 1, 50 do f.widgets[index] = widget(f.primary, true) end
-    keys.F6()
-    queued[1]()
-    local logs = table.concat(f.logs, "\n")
-    assert(logs:find("HUD output capped at 40 roots; scan is incomplete", 1, true))
-    assert(not logs:find("HUD root 41", 1, true))
-    assert(f.creates == 0 and f.removes == 0)
-end)
+-- F6 now runs the focused script report; runtime composition is covered in main_runtime_spec.
 
 local function hud_fixture(options)
     options = options or {}

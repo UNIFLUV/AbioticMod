@@ -74,6 +74,7 @@ end
 
 -- Key callbacks are not assumed to run on Unreal's game thread.
 local busy = false
+local handler_diagnostics
 local function dispatch(action)
     if busy then return end
     busy = true
@@ -88,7 +89,10 @@ local function dispatch(action)
     end
 end
 
-RegisterKeyBind(Key.F6, function() dispatch(function() probe:diagnose(); inspect_cameras() end) end)
+RegisterKeyBind(Key.F6, function() dispatch(function()
+    if handler_diagnostics then handler_diagnostics();return end
+    probe:diagnose();inspect_cameras()
+end) end)
 RegisterKeyBind(Key.F7, function() dispatch(function() probe:add_player(); inspect_cameras() end) end)
 RegisterKeyBind(Key.F8, function() dispatch(function() probe:remove_player() end) end)
 RegisterKeyBind(Key.F9, function() dispatch(repair_second_camera) end)
@@ -471,15 +475,11 @@ log('v0.8.1 recovery base retained. Legacy v0.8 native UI/projection/pause hooks
 
 -- v0.8.2: isolate container repair from the disabled native-hook experiments.
 local ContainerHandoff=require('container_handoff')
-local ContainerEvents=require('container_delegates')
-local container_events=ContainerEvents.new({pair=function() return session:pair() end,
-    huds=function() return hud_trial end,
-    bind=function() inventory_ui:bind() end,log=log})
 local container_handoff=ContainerHandoff.new({pair=function() return session:pair() end,
     huds=function() return hud_trial end,guest_active=function() return session.input_backup~=nil end,
     visible=InventoryUi.visible,property=InventoryUi.property,find=StaticFindObject,
     delay=ExecuteWithDelay,game_thread=ExecuteInGameThread,log=log,
-    bind_container=function(component) return container_events:repair(component) end,
+    bind_container=function() inventory_ui:bind() end,
     sync=function() inventory_ui:sync() end})
 local inventory_sync=inventory_ui.sync
 function inventory_ui:sync()
@@ -492,8 +492,17 @@ function inventory_ui:key(kind) container_handoff:cancel(); inventory_key(self,k
 local container_switch=session.switch_input
 function session:switch_input() container_handoff:cancel(); container_switch(self) end
 local container_restore=hud_link.restore
-function hud_link:restore() container_handoff:clear(); container_events:clear(); container_restore(self) end
+function hud_link:restore() container_handoff:clear(); container_restore(self) end
 RegisterKeyBind(0x45,function() dispatch(function() container_handoff:key() end) end)
 log('Experimental probe v0.8.2a container-only trial loaded. Guest container open/close was observed in v0.8.2; an absent E target is now re-read once after native interaction. Valid mismatched targets still block handoff. Native hooks, shared pause, marker and preview experiments remain disabled. Independent profiles remain unfinished.')
 log('v0.8.3 container cache experiment retired: no matching character/backpack cache fields were found on the container widget and Take All still delivered items to host.')
-log('Experimental probe v0.8.4 owned inventory event trial loaded. UE4SS delegate GetBindings/Add/Remove can retarget a proven host UI receiver to its corresponding guest object using the same existing handler. LOOTBIND reports actual bindings; no Broadcast, native hooks, F observer or item/save calls added. Native Take All destination remains unverified.')
+log('v0.8.4 delegate experiment retired: observed event receivers already belonged to the guest, changed=0; Take All still delivered items to host.')
+local ScriptProbe=require('script_probe')
+local script_probe=ScriptProbe.new({pair=function() return session:pair() end,huds=function() return hud_trial end,
+    find=StaticFindObject,register=RegisterCustomProperty,types=PropertyTypes,log=log,
+    header=function()
+        local file=assert(io.open('UE4SS.log','rb'),'Current UE4SS.log header unavailable')
+        local text=file:read(262144);file:close();return text
+    end})
+handler_diagnostics=function() script_probe:dump() end
+log('Experimental probe v0.8.5 read-only handler diagnostic loaded. Open the guest container, press F6 once and send UE4SS.log. No item transfer is needed. Logged engine layout and native sanity checks gate the Script byte view; bytecode is never patched. Take All recipient bug remains unresolved.')

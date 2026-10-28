@@ -1,6 +1,8 @@
 """Run Lua 5.4 probe tests without requiring the Windows game or UE4SS."""
 from pathlib import Path
 import os
+import subprocess
+import sys
 
 from lupa.lua54 import LuaRuntime
 
@@ -20,5 +22,7 @@ lua.execute((root / "tests" / "container_ui_spec.lua").read_text(encoding="utf-8
 lua.execute((root / "tests" / "container_handoff_spec.lua").read_text(encoding="utf-8"))
 lua.execute((root / "tests" / "container_actions_spec.lua").read_text(encoding="utf-8"))
 lua.execute((root / "tests" / "container_delegates_spec.lua").read_text(encoding="utf-8"))
+lua.execute((root / "tests" / "script_probe_spec.lua").read_text(encoding="utf-8"))
 lua.execute((root / "tests" / "shared_pause_spec.lua").read_text(encoding="utf-8"))
 lua.execute((root / "tests" / "preview_ui_spec.lua").read_text(encoding="utf-8"))
+subprocess.run([sys.executable, str(root / 'tests/script_report_spec.py')], check=True)

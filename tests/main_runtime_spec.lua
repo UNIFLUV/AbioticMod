@@ -30,7 +30,7 @@ local function fixture()
         hud_link={new=hud_link},
         routing_probe={new=function() return {capture=function() event('route') end} end},
         inventory_ui={new=function() return ui end},
-        container_delegates={new=function() return {repair=function() end,clear=function() end} end},
+        script_probe={new=function() return {dump=function() event('script-report') end} end},
         container_handoff={new=function() return {
             remember=function() end,cancel=function() end,clear=function() end,
             key=function() event('container-key') end,
@@ -41,6 +41,7 @@ local function fixture()
         Key={F1='F1',F2='F2',F3='F3',F4='F4',F5='F5',F6='F6',F7='F7',F8='F8',F9='F9'},
         RegisterKeyBind=function(key,fn) assert(not f.keys[key]); f.keys[key]=fn end,
         RegisterHook=forbidden, FindAllOf=forbidden, FindFirstOf=forbidden,
+        RegisterCustomProperty=forbidden,
         StaticFindObject=forbidden, ExecuteWithDelay=forbidden,
         ExecuteInGameThread=function(fn) fn() end,
         print=function(s) f.logs[#f.logs+1]=s end,
@@ -57,7 +58,7 @@ end
 local function test(name,fn) fn(); passed=passed+1; print('PASS '..name) end
 test('F2 completes both handoffs without loading or scanning waypoint experiment',function()
     local f=fixture()
-    for _,key in ipairs({'waypoint_ui','player_bindings','ui_context','shared_pause','container_ui','preview_ui','container_actions'}) do
+    for _,key in ipairs({'waypoint_ui','player_bindings','ui_context','shared_pause','container_ui','preview_ui','container_actions','container_delegates'}) do
         assert(not f.modules[key], 'Recovery loaded a disabled experimental module: '..key)
     end
     assert(f.keys[0x45]~=nil and f.keys[0x01]==nil, 'Container trial must observe only E, with no mouse observer')
@@ -67,6 +68,10 @@ test('F2 completes both handoffs without loading or scanning waypoint experiment
     f.events={}; f.keys.F2()
     assert(not f.session.input_backup and table.concat(f.events,',')=='host,route,focus')
     assert(f.logs[#f.logs]:find('F2 handoff complete',1,true))
+end)
+test('F6 invokes only the focused script diagnostic without running broad native scans',function()
+    local f=fixture();f.keys.F6()
+    assert(table.concat(f.events,',')=='script-report')
 end)
 test('E reaches only the isolated container handoff without registering native hooks',function()
     local f=fixture();f.keys[0x45]()
