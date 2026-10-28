@@ -21,9 +21,9 @@ if (Test-Path -LiteralPath $main -PathType Leaf) {
             if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { $matched=$false; break }
             if ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash) { $matched=$false; break }
         }
-        if ($matched) { Write-Host 'v0.7.5 already installed.' -ForegroundColor Green; return }
+        if ($matched) { Write-Host 'v0.8 already installed.' -ForegroundColor Green; return }
     }
-    if ($oldHash -notin @($sourceHash, 'e311d4e9aaec25d7777aae534b3fa48533a3e7c2cef8f953d7525fc6aafa595f', 'd4aeff2c592816aab7057227974335d442a0f174108df382240ddfa7914b7553', '74ef6062b9e6a7688644992db01837221b344c329a35e6c8935e05d43804b72e')) {
+    if ($oldHash -notin @($sourceHash, 'a6442e3d72410596d91fc18ac059b2afd108840332e23bdaedb2f377ee79c257', 'e311d4e9aaec25d7777aae534b3fa48533a3e7c2cef8f953d7525fc6aafa595f', 'd4aeff2c592816aab7057227974335d442a0f174108df382240ddfa7914b7553', '74ef6062b9e6a7688644992db01837221b344c329a35e6c8935e05d43804b72e')) {
         throw 'Unknown main.lua version. Nothing changed; send the current file.'
     }
 }
@@ -56,4 +56,4 @@ catch {
     }
     throw
 }
-Write-Host 'Updated to v0.7.5. F1, wait, F2. Test Tab/Esc close and reopen. Send UE4SS.log.' -ForegroundColor Green
+Write-Host 'Updated to v0.8. F1, wait. Test common Esc, F2, E container, markers and two previews. Send UE4SS.log.' -ForegroundColor Green

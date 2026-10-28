@@ -103,10 +103,28 @@ function Ui:release()
     end
     self.focus=nil
 end
+function Ui:focus_menu(pc,target)
+    local _,first,second=self.api.pair()
+    assert(same(pc,first) or same(pc,second),'Unknown menu controller')
+    if self.focus and not same(self.focus.pc,pc) then self:release() end
+    if not self.focus then
+        assert(type(first.bShowMouseCursor)=='boolean' and type(second.bShowMouseCursor)=='boolean','Cursor flags unavailable')
+        self.focus={pc=pc,cursors=self.cursors or {{pc=first,old=false},{pc=second,old=false}}}
+    end
+    local ok,message=pcall(function() self:mode(pc,target) end)
+    if not ok then self:release(); error(message) end
+    first.bShowMouseCursor=true
+    second.bShowMouseCursor=true
+end
 function Ui:sync()
     local _, first, second = self.api.pair()
     local h = self.api.huds()
     if not h then return end
+    self.inventory_states={}
+    for _,owned in ipairs({h.main,h.guest}) do
+        local root=owned.W_PlayerInventory_Main
+        self.inventory_states[root:GetAddress()]={root=root,displayed=visible(root) and visible(root.InventoryMain)}
+    end
     local guest = self.api.guest_active()
     local pc, hud = guest and second or first, guest and h.guest or h.main
     local inv, esc = hud.W_PlayerInventory_Main, hud.W_EscapeMenu_Main
@@ -115,15 +133,7 @@ function Ui:sync()
     local had_focus = self.focus~=nil
     if self.focus and not same(self.focus.pc,pc) then self:release() end
     if target then
-        if not self.focus then
-            assert(type(first.bShowMouseCursor)=='boolean' and type(second.bShowMouseCursor)=='boolean', 'Cursor flags unavailable')
-            self.focus={pc=pc,cursors=self.cursors or {{pc=first,old=false},{pc=second,old=false}}}
-        end
-        local ok,message=pcall(function() self:mode(pc,target) end)
-        if not ok then self:release(); error(message) end
-        -- The viewport hardware cursor can consult its first local controller.
-        first.bShowMouseCursor=true
-        second.bShowMouseCursor=true
+        self:focus_menu(pc,target)
         self.api.log('UIFOCUS active local player focused; viewport cursor shown')
     elseif had_focus then
         self:mode(pc,nil)
@@ -131,12 +141,7 @@ function Ui:sync()
         self.api.log('UIFOCUS game input restored after menu closure')
     end
 end
-function Ui:close_inventory(pc, root)
-    local _, first, second = self.api.pair()
-    assert(same(pc,second) and same(second.Pawn,self.pawn), 'Guest character changed')
-    assert(same(root,self.api.huds().guest.W_PlayerInventory_Main) and
-        same(root:GetOwningPlayer(),second) and same(root.OwningCharacter,second.Pawn) and
-        same(second.Pawn.InventoryReference,root), 'Guest inventory ownership changed')
+function Ui:inventory_function()
     local func=self.api.find('/Game/Blueprints/Characters/Abiotic_PlayerCharacter.Abiotic_PlayerCharacter_C:ToggleInventory')
     assert(valid(func), 'Character inventory close handler missing')
     local expected={
@@ -160,6 +165,43 @@ function Ui:close_inventory(pc, root)
     local flags=func:GetFunctionFlags()
     assert(type(flags)=='number' and (flags & 0x40)==0 and (flags & 0x100000)==0,
         'Expected a local character function, not an RPC or delegate')
+    return func
+end
+function Ui:container_mode(root)
+    for _,key in ipairs({'InventoryMode','CurrentInventoryMode'}) do
+        if property(root,key,'EnumProperty') then
+            local mode=root[key]
+            assert(type(mode)=='number' and mode%1==0 and mode>=0 and mode<=255,'Invalid container inventory mode')
+            return mode
+        end
+    end
+    error('Container inventory mode is not exposed; transfer was not attempted')
+end
+function Ui:close_host_container(component)
+    local _,first=self.api.pair()
+    local root=self.api.huds().main.W_PlayerInventory_Main
+    assert(same(root:GetOwningPlayer(),first) and same(root.OwningCharacter,first.Pawn) and
+        same(first.Pawn.InventoryReference,root) and same(root.ActiveContainer,component),'Host container context changed')
+    local mode=self:container_mode(root)
+    self:inventory_function()(first.Pawn,true,mode,{},nil,false)
+    assert(not (visible(root) and visible(root.InventoryMain)),'Host container UI did not close')
+end
+function Ui:open_guest_container(component,mode)
+    local _,_,second=self.api.pair()
+    local root=self.api.huds().guest.W_PlayerInventory_Main
+    assert(same(second.Pawn,self.pawn) and same(root:GetOwningPlayer(),second) and
+        same(root.OwningCharacter,second.Pawn) and same(second.Pawn.InventoryReference,root),'Guest container context changed')
+    assert(valid(component) and component:IsA('/Script/Engine.ActorComponent') and
+        type(mode)=='number' and mode%1==0 and mode>=0 and mode<=255,'Invalid container request')
+    self:inventory_function()(second.Pawn,false,mode,{},component,false)
+end
+function Ui:close_inventory(pc, root)
+    local _, _, second = self.api.pair()
+    assert(same(pc,second) and same(second.Pawn,self.pawn), 'Guest character changed')
+    assert(same(root,self.api.huds().guest.W_PlayerInventory_Main) and
+        same(root:GetOwningPlayer(),second) and same(root.OwningCharacter,second.Pawn) and
+        same(second.Pawn.InventoryReference,root), 'Guest inventory ownership changed')
+    local func=self:inventory_function()
     -- This is a close-only request. Do not supply a new container or crafting
     -- targets. Preserve the widget mode when it exposes a confirmed enum field;
     -- otherwise zero-initialize the open-only mode option, with ForceClose=true.
@@ -236,5 +278,7 @@ function Ui:restore()
     self.pawn=nil
     self.cursors=nil
     self.observed_inventory=nil
+    self.inventory_states=nil
 end
+Ui.visible=visible
 return Ui

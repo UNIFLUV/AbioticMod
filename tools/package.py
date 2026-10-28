@@ -9,7 +9,7 @@ parser.add_argument("--output", type=Path, required=True)
 args = parser.parse_args()
 args.output.parent.mkdir(parents=True, exist_ok=True)
 mod = root / "mods" / "AbioticSplitScreen"
-files = [mod / "enabled.txt", mod / "Scripts" / "main.lua", mod / "Scripts" / "split_probe.lua", mod / "Scripts" / "session_tools.lua", mod / "Scripts" / "player_bindings.lua", mod / "Scripts" / "hud_link.lua", mod / "Scripts" / "routing_probe.lua", mod / "Scripts" / "inventory_ui.lua", mod / "Scripts" / "waypoint_ui.lua"]
+files = [mod / "enabled.txt", *sorted((mod / "Scripts").glob("*.lua"))]
 with ZipFile(args.output, "w", compression=ZIP_DEFLATED) as archive:
     for path in files:
         entry = ZipInfo(path.relative_to(mod.parent).as_posix(), date_time=(2026, 1, 1, 0, 0, 0))
